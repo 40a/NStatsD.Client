@@ -66,6 +66,11 @@ namespace NStatsD
 
         private void Send(Dictionary<string, string> data, double sampleRate = 1)
         {
+            if (_config == null)
+            {
+                // silently exit if the user hasn't setup the stats due to unit test environment etc
+                return;
+            }
             var random = new Random();
             var sampledData = new Dictionary<string, string>();
             if (sampleRate < 1 && random.Next(0, 1) <= sampleRate)
