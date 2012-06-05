@@ -2,25 +2,23 @@
 
 A .NET 4.0 client for [Etsy](http://etsy.com)'s [StatsD](https://github.com/etsy/statsd) server.
 
-This client will let you fire stats at your StatsD server from a .NET application. Very useful for mixed technology systems that you would like to keep near real-time stats on.
+This client will let you fire stats at your StatsD server from a .NET application. 
+This is a fork of Rob Bihun's client with some adjusted syntax to support dynamic buckets.
 
 ## Requirements
 .NET 4.0 (Websocket support)
 
 ## Installation
 
-### Nuget
-```
-Install-Package NStatsD.Client
-```
-### Manually
-
-Just include the Client.cs and the StatsDConfigurationSection.cs files in your project. 
+Add the Client.cs and the StatsDConfigurationSection.cs files in your project. 
 Add the following to your config's configSections node.
+
 ```xml
 <section name="statsD" type="NStatsD.StatsDConfigurationSection, NStatsD.Client" />
 ```
+
 Then add the following to your app config's configuration node.
+
 ```xml
 <statsD>
 	<server host="localhost" port="8125" />
@@ -28,11 +26,13 @@ Then add the following to your app config's configuration node.
 ```
 ## Usage
 ```csharp
-NStatsD.Client.Current.Increment("testing.increment");
-NStatsD.Client.Current.Increment("testing.increment", 0.5); // Optional Sample Rate included on all methods
-NStatsD.Client.Current.Decrement("testing.decrement");
-NStatsD.Client.Current.Timing("testing.timing", 2345);
-NStatsD.Client.Current.Gauge("testing.gauge", 45);
+
+            var timedStat = NStatsD.Client.With("test.timer").BeginTimer();
+
+            NStatsD.Client.With("test.increment").Increment();
+            NStatsD.Client.With("test.decrement").Decrement();
+            NStatsD.Client.With("test", "gauge").Gauge(random.Next(0, 100));
+            NStatsD.Client.WithoutPrefix("NStatsDDemo.NoPrefix.Gauge").Gauge(89);
 ```
 # License
 
