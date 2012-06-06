@@ -38,7 +38,7 @@ namespace NStatsD
         public void Timing(long time, double sampleRate = 1)
         {
             var data = new Dictionary<string, string> { { Name, string.Format("{0}|ms", time) } };
-            Send(data, sampleRate);
+            SendData(data, sampleRate);
         }
 
         public void Increment(double sampleRate = 1)
@@ -54,16 +54,16 @@ namespace NStatsD
         public void Gauge(int value, double sampleRate = 1)
         {
             var data = new Dictionary<string, string> { { Name, string.Format("{0}|g", value) } };
-            Send(data, sampleRate);
+            SendData(data, sampleRate);
         }
 
         public void UpdateStats(int delta = 1, double sampleRate = 1)
         {
             var dictionary = new Dictionary<string, string> { { Name, string.Format("{0}|c", delta) } };
-            Send(dictionary, sampleRate);
+            SendData(dictionary, sampleRate);
         }
 
-        private void Send(Dictionary<string, string> data, double sampleRate = 1)
+        private void SendData(Dictionary<string, string> data, double sampleRate = 1)
         {
             if (_config == null)
             {
@@ -88,18 +88,13 @@ namespace NStatsD
             {
                 sampledData = data;
             }
-
-            Task task = new Task(() => BackgroundSend(sampledData), TaskCreationOptions.LongRunning);
-            task.Start();
+            
+            SendUdp(sampledData);
 
             Log("NStatsD.Send returning");
         }
 
-        /// <summary>
-        /// Disposing of the UdpClient when the statsD server is down takes 3 seconds.
-        /// So ship this off onto a background task.
-        /// </summary>
-        private void BackgroundSend(Dictionary<string, string> sampledData)
+        private void SendUdp(Dictionary<string, string> sampledData)
         {
             var host = _config.Server.Host;
             var port = _config.Server.Port;
@@ -112,7 +107,6 @@ namespace NStatsD
                 var sendData = encoding.GetBytes(stringToSend);
                 Log("NStatsD sending {0}", stringToSend);
                 client.BeginSend(sendData, sendData.Length, UdpClientCallback, client);
-                Log("NStatsD sent {0}", stringToSend);
             }
         }
 
