@@ -103,17 +103,16 @@ namespace NStatsD
         {
             var host = _config.Server.Host;
             var port = _config.Server.Port;
-            using (var client = new UdpClient(host, port))
+            var client = new UdpClient(host, port);
+
+            foreach (var stat in sampledData.Keys)
             {
-                foreach (var stat in sampledData.Keys)
-                {
-                    var encoding = new System.Text.ASCIIEncoding();
-                    var stringToSend = string.Format("{0}:{1}", stat, sampledData[stat]);
-                    var sendData = encoding.GetBytes(stringToSend);
-                    Log("NStatsD sending {0}", stringToSend);
-                    client.BeginSend(sendData, sendData.Length, Callback, null);
-                    Log("NStatsD sent {0}", stringToSend);
-                }
+                var encoding = new System.Text.ASCIIEncoding();
+                var stringToSend = string.Format("{0}:{1}", stat, sampledData[stat]);
+                var sendData = encoding.GetBytes(stringToSend);
+                Log("NStatsD sending {0}", stringToSend);
+                client.BeginSend(sendData, sendData.Length, UdpClientCallback, client);
+                Log("NStatsD sent {0}", stringToSend);
             }
         }
 
@@ -124,10 +123,10 @@ namespace NStatsD
 #endif
         }
 
-        private static void Callback(IAsyncResult result)
+        private static void UdpClientCallback(IAsyncResult result)
         {
-            UdpClient udpClient = (UdpClient)result.AsyncState;
-            Log("NStatsD sent: {0} bytes", udpClient == null ? "??" : udpClient.EndSend(result).ToString());
+            UdpClient udpClient = (UdpClient) result.AsyncState;
+            Log("NStatsD sent {0} bytes", udpClient.EndSend(result));
         }
     }
 }
