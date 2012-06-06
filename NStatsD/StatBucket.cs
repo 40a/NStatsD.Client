@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace NStatsD
 {
-
-
     public class StatBucket
     {
         Stopwatch _timer;
@@ -71,19 +70,37 @@ namespace NStatsD
                 // silently exit if the user hasn't setup the stats due to unit test environment etc
                 return;
             }
-            var random = new Random();
+            
             var sampledData = new Dictionary<string, string>();
-            if (sampleRate < 1 && random.Next(0, 1) <= sampleRate)
+            if (sampleRate < 1)
             {
-                foreach (var stat in data.Keys)
+                var random = new Random();
+                if (random.Next(0, 1) <= sampleRate)
                 {
-                    sampledData.Add(stat, string.Format("{0}|@{1}", data[stat], sampleRate));
+                    foreach (var stat in data.Keys)
+                    {
+                        sampledData.Add(stat, string.Format("{0}|@{1}", data[stat], sampleRate));
+                    }       
                 }
             }
-            else
+            
+            if (sampledData.Keys.Count == 0)
             {
                 sampledData = data;
             }
+
+            Task task = new Task(() => BackgroundSend(sampledData), TaskCreationOptions.LongRunning);
+            task.Start();
+
+            Log("NStatsD.Send returning");
+        }
+
+        /// <summary>
+        /// Disposing of the UdpClient when the statsD server is down takes 3 seconds.
+        /// So ship this off onto a background task.
+        /// </summary>
+        private void BackgroundSend(Dictionary<string, string> sampledData)
+        {
             var host = _config.Server.Host;
             var port = _config.Server.Port;
             using (var client = new UdpClient(host, port))
@@ -93,14 +110,24 @@ namespace NStatsD
                     var encoding = new System.Text.ASCIIEncoding();
                     var stringToSend = string.Format("{0}:{1}", stat, sampledData[stat]);
                     var sendData = encoding.GetBytes(stringToSend);
+                    Log("NStatsD sending {0}", stringToSend);
                     client.BeginSend(sendData, sendData.Length, Callback, null);
+                    Log("NStatsD sent {0}", stringToSend);
                 }
             }
         }
 
+        private static void Log(string messageFormat, params object[] formatArgs)
+        {
+#if DEBUG
+            Trace.WriteLine(DateTime.Now.ToString("HH:mm:ss.fff\t") + string.Format(messageFormat, formatArgs));
+#endif
+        }
+
         private static void Callback(IAsyncResult result)
         {
-            // dont really want to do anything here since, would rather miss metrics than cause a site/app failure
+            UdpClient udpClient = (UdpClient)result.AsyncState;
+            Log("NStatsD sent: {0} bytes", udpClient == null ? "??" : udpClient.EndSend(result).ToString());
         }
     }
 }
