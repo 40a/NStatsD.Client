@@ -24,10 +24,11 @@ namespace NStatsD
             return this;
         }
 
-        public void EndTimer(double sampleRate = 1)
+        public TimeSpan EndTimer(double sampleRate = 1)
         {
             _timer.Stop();
             Timing(_timer.ElapsedMilliseconds, sampleRate);
+            return _timer.Elapsed;
         }
 
         public void Timing(TimeSpan timeSpan, double sampleRate = 1)
