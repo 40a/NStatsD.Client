@@ -1,4 +1,4 @@
-# NStatsD.Client
+# NStatsDClient
 
 A .NET 4.0 client for [Etsy](http://etsy.com)'s [StatsD](https://github.com/etsy/statsd) server.
 
@@ -6,15 +6,15 @@ This client will let you fire stats at your StatsD server from a .NET applicatio
 This is a fork of Rob Bihun's client with some adjusted syntax to support dynamic buckets.
 
 ## Requirements
-.NET 4.0 (Websocket support)
+.NET 4.0
 
 ## Installation
 
-Add the Client.cs and the StatsDConfigurationSection.cs files in your project. 
+Reference the NStatsD.dll assembly in your project. 
 Add the following to your config's configSections node.
 
 ```xml
-<section name="statsD" type="NStatsD.StatsDConfigurationSection, NStatsD.Client" />
+<section name="statsD" type="NStatsD.StatsDConfigurationSection, NStatsD" />
 ```
 
 Then add the following to your app config's configuration node.
@@ -29,11 +29,11 @@ Then add the following to your app config's configuration node.
 
             var timedStat = NStatsD.Client.With("test.timer").BeginTimer();
 
-            NStatsD.Client.With("test.increment").Increment();
-            NStatsD.Client.With("test.decrement").Decrement();
-            NStatsD.Client.With("test", "gauge").Gauge(random.Next(0, 100));
-            NStatsD.Client.WithoutPrefix("NStatsDDemo.NoPrefix.Gauge").Gauge(89);
+            NStatsDClient.With("test.increment").Increment();
+            NStatsDClient.With("test.decrement").Decrement();
+            NStatsDClient.With("test", "gauge").Gauge(random.Next(0, 100));
+            NStatsDClient.WithoutPrefix("NStatsDDemo.NoPrefix.Gauge").Gauge(89);
 ```
 # License
 
-NStatsD.Client is licensed under the MIT license.
+NStatsDClient is licensed under the MIT license.
