@@ -47,37 +47,37 @@ namespace NStatsD.Tests
         [TestCleanup()]
         public void TestCleanup()
         {
-            Client.GlobalBucketPrefix = null;
+            NStatsDClient.GlobalBucketPrefix = null;
         }
         #endregion
 
         [TestMethod]
         public void With_NoPrefix_SingleString()
         {
-            var bucket = Client.With("test.gauge");
+            var bucket = NStatsDClient.With("test.gauge");
             Assert.AreEqual("test.gauge", bucket.Name);
         }
 
         [TestMethod]
         public void With_NoPrefix_StringArray()
         {
-            var bucket = Client.With("test", "gauge");
+            var bucket = NStatsDClient.With("test", "gauge");
             Assert.AreEqual("test.gauge", bucket.Name);
         }
 
         [TestMethod]
         public void With_Prefix_StringArray()
         {
-            Client.GlobalBucketPrefix = Client.GetBucketName("machineName", "applicationName");
-            var bucket = Client.With("test", "gauge");
+            NStatsDClient.GlobalBucketPrefix = NStatsDClient.GetBucketName("machineName", "applicationName");
+            var bucket = NStatsDClient.With("test", "gauge");
             Assert.AreEqual("machineName.applicationName.test.gauge", bucket.Name);
         }
 
         [TestMethod]
         public void With_Prefix_String()
         {
-            Client.GlobalBucketPrefix = Client.GetBucketName("machineName", "applicationName");
-            var bucket = Client.With("test.gauge");
+            NStatsDClient.GlobalBucketPrefix = NStatsDClient.GetBucketName("machineName", "applicationName");
+            var bucket = NStatsDClient.With("test.gauge");
             Assert.AreEqual("machineName.applicationName.test.gauge", bucket.Name);
         }
 
@@ -85,8 +85,8 @@ namespace NStatsD.Tests
         [TestMethod]
         public void WithoutPrefix_IgnoresPrefix()
         {
-            Client.GlobalBucketPrefix = Client.GetBucketName("machineName", "applicationName");
-            var bucket = Client.WithoutPrefix("test.gauge");
+            NStatsDClient.GlobalBucketPrefix = NStatsDClient.GetBucketName("machineName", "applicationName");
+            var bucket = NStatsDClient.WithoutPrefix("test.gauge");
             Assert.AreEqual("test.gauge", bucket.Name);
         }
     }

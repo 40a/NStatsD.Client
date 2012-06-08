@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading;
+using NStatsD;
 
 namespace Demo
 {
@@ -8,24 +9,24 @@ namespace Demo
     {
         static void Main(string[] args)
         {
-            NStatsD.Client.GlobalBucketPrefix = NStatsD.Client.GetBucketName(Environment.MachineName, "NStatsDDemo");
+            NStatsDClient.GlobalBucketPrefix = NStatsDClient.GetBucketName(Environment.MachineName, "NStatsDDemo");
 
             Random random = new Random();
 
-            var timedStat = NStatsD.Client.With("test.timer").BeginTimer();
+            var timedStat = NStatsDClient.With("test.timer").BeginTimer();
 
-            NStatsD.Client.With("test.increment").Increment();
-            NStatsD.Client.With("test.decrement").Decrement();
-            NStatsD.Client.With("test", "gauge").Gauge(random.Next(0, 100));
-            NStatsD.Client.WithoutPrefix("NStatsDDemo.NoPrefix.Gauge").Gauge(89);
+            NStatsDClient.With("test.increment").Increment();
+            NStatsDClient.With("test.decrement").Decrement();
+            NStatsDClient.With("test", "gauge").Gauge(random.Next(0, 100));
+            NStatsDClient.WithoutPrefix("NStatsDDemo.NoPrefix.Gauge").Gauge(89);
 
-            timedStat.EndTimer();
+            var timeSpan = timedStat.EndTimer();
 
             //for (int i = 0; i < 100; i++)
             //{
             //    var ms = random.Next(100, 800);
             //    Console.WriteLine(ms);
-            //    NStatsD.Client.With("prefixed", "timing4").Timing(TimeSpan.FromMilliseconds(ms));
+            //    NStatsDClient.With("prefixed", "timing4").Timing(TimeSpan.FromMilliseconds(ms));
             //    Thread.Sleep(10000);
             //}
 

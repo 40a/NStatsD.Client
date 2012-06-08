@@ -19,7 +19,7 @@ namespace NStatsD
     //    }
     //}
 
-    public static class Client
+    public static class NStatsDClient
     {
         private static readonly Lazy<StatsDConfigurationSection> _config = new Lazy<StatsDConfigurationSection>(() => (StatsDConfigurationSection)ConfigurationManager.GetSection("statsD"));
 
