@@ -99,7 +99,28 @@ namespace NStatsD
         {
             var host = _config.Server.Host;
             var port = _config.Server.Port;
-            var client = new UdpClient(host, port);
+
+            UdpClient client;
+            
+            try
+            {
+                client = new UdpClient(host, port);
+            }
+            catch(SocketException e)
+            {
+                /*
+                 * Saw the the following failure in the wild - wrap some better messaging around it
+                 
+                   System.Net.Sockets.SocketException (0x80004005): The requested name is valid, but no data of the requested type was found
+                   at System.Net.Dns.GetAddrInfo(String name)
+                   at System.Net.Dns.InternalGetHostByName(String hostName, Boolean includeIPv6)
+                   at System.Net.Dns.GetHostAddresses(String hostNameOrAddress)
+                   at System.Net.Sockets.UdpClient.Connect(String hostname, Int32 port)
+                   at System.Net.Sockets.UdpClient..ctor(String hostname, Int32 port)
+                 */
+                string message = string.Format("NStatsD failed to transmit to '{0}:{1}'", host, port);
+                throw new ApplicationException(message, e);
+            }
 
             foreach (var stat in sampledData.Keys)
             {
