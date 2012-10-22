@@ -2,22 +2,37 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace NStatsD
 {
     public class StatBucket
     {
+        #region Fields
+
         Stopwatch _timer;
         public string Name { get; private set; }
         private readonly StatsDConfigurationSection _config;
 
+        /// <summary>
+        /// Support rerouting the messages to Nlog/log4net etc http://nlog-project.org/2010/09/02/routing-system-diagnostics-trace-and-system-diagnostics-tracesource-logs-through-nlog.html
+        /// </summary>
+        static readonly TraceSource TraceSource = new TraceSource("NStatsD");
+        #endregion
+
+        #region Ctor
         public StatBucket(StatsDConfigurationSection config, string name)
         {
             Name = name;
             _config = config;
         }
+        #endregion
 
+        #region Instance Methods
+        /// <summary>
+        /// Return this instance to support fluent style syntax
+        /// </summary>
         public StatBucket BeginTimer()
         {
             _timer = Stopwatch.StartNew();
@@ -92,7 +107,7 @@ namespace NStatsD
             
             SendUdp(sampledData);
 
-            Log("NStatsD.Send returning");
+            LogVerbose("NStatsD.Send returning");
         }
 
         private void SendUdp(Dictionary<string, string> sampledData)
@@ -109,7 +124,8 @@ namespace NStatsD
             catch(SocketException e)
             {
                 /*
-                 * Saw the the following failure in the wild - wrap some better messaging around it
+                 * This happened when the host was a fully qualified domain name that pointed back to the same local sever
+                 * and the Internet connection went down. Wrap some clearer messaging around it.    
                  
                    System.Net.Sockets.SocketException (0x80004005): The requested name is valid, but no data of the requested type was found
                    at System.Net.Dns.GetAddrInfo(String name)
@@ -118,31 +134,57 @@ namespace NStatsD
                    at System.Net.Sockets.UdpClient.Connect(String hostname, Int32 port)
                    at System.Net.Sockets.UdpClient..ctor(String hostname, Int32 port)
                  */
-                string message = string.Format("NStatsD failed to transmit to '{0}:{1}'", host, port);
-                throw new ApplicationException(message, e);
+                string message = string.Format("NStatsD failed to transmit to '{0}:{1}' ({2})", host, port, e.Message);
+                LogWarn(message);
+
+                // Typically wouldn't want the code to throw an exception up the chain just because of a failing stat
+                #if DEBUG
+                    throw new ApplicationException("Thowing Exception due to DEBUG compile: " + message, e);
+                #endif
+
+                // Abort sending the data since the connection failed.
+                return;
             }
 
             foreach (var stat in sampledData.Keys)
             {
-                var encoding = new System.Text.ASCIIEncoding();
+                var encoding = new ASCIIEncoding();
                 var stringToSend = string.Format("{0}:{1}", stat, sampledData[stat]);
                 var sendData = encoding.GetBytes(stringToSend);
-                Log("NStatsD sending {0}", stringToSend);
+                LogVerbose("NStatsD sending {0}", stringToSend);
                 client.BeginSend(sendData, sendData.Length, UdpClientCallback, client);
             }
         }
 
-        private static void Log(string messageFormat, params object[] formatArgs)
+        #endregion
+
+        #region Static Methods
+
+        private static void LogWarn(string messageFormat, params object[] formatArgs)
+        {
+            Log(TraceEventType.Warning, messageFormat, formatArgs);
+        }
+
+        private static void LogVerbose(string messageFormat, params object[] formatArgs)
+        {
+            Log(TraceEventType.Verbose, messageFormat, formatArgs);
+        }
+
+        private static void Log(TraceEventType traceEventType, string messageFormat, params object[] formatArgs)
         {
 #if DEBUG
             Trace.WriteLine(DateTime.Now.ToString("HH:mm:ss.fff\t") + string.Format(messageFormat, formatArgs));
 #endif
+            TraceSource.TraceEvent(traceEventType, 20121023, messageFormat, formatArgs);
         }
 
         private static void UdpClientCallback(IAsyncResult result)
         {
             UdpClient udpClient = (UdpClient) result.AsyncState;
-            Log("NStatsD sent {0} bytes", udpClient.EndSend(result));
+            LogVerbose("NStatsD sent {0} bytes", udpClient.EndSend(result));
         }
+
+        #endregion
+
     }
 }
